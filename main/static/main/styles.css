@@ -99,3 +99,55 @@ body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-seri
     .row { margin: .5rem 0; }
     .btn { display: inline-block; padding: .5rem .9rem; border-radius: 8px; text-decoration: none; border: 1px solid #ccc; }
     .btn-primary { border-color: #2b6cb0; }
+*
+ { box-sizing: border-box; margin: 0; padding: 0; }
+.cal-wrap { padding: 1rem 0; }
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.cal-title { font-size: 18px; font-weight: 500; color: #111; }
+.cal-nav { display: flex; gap: 8px; }
+.week-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.day-col { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 10px 8px; min-height: 160px; }
+.day-col.today { border-color: #378ADD; }
+.day-name { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.day-num { font-size: 20px; font-weight: 500; color: #111; margin-bottom: 8px; }
+.day-col.today .day-num { color: #185FA5; }
+.events-list { display: flex; flex-direction: column; gap: 4px; }
+.event-pill { background: #E6F1FB; color: #0C447C; border-radius: 8px; padding: 4px 8px; font-size: 12px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event-pill:hover { background: #B5D4F4; }
+.add-btn:hover { border-color: #bbb; color: #888; }
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 1.5rem; width: 320px; max-width: 90vw; }
+.modal h3 { font-size: 16px; font-weight: 500; color: #111; margin-bottom: 1rem; }
+.modal input, .modal textarea { width: 100%; margin-bottom: 12px; font-size: 14px; padding: 8px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; color: #111; }
+.modal textarea { height: 80px; resize: vertical; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.modal-actions button { padding: 6px 16px; font-size: 13px; border-radius: 8px; cursor: pointer; border: 1px solid #ddd; background: none; color: #111; }
+.modal-actions .btn-primary { background: #185FA5; color: #fff; border-color: #185FA5; }
+.modal-actions .btn-danger { color: #A32D2D; border-color: #f7c1c1; }
+.event-detail-body { font-size: 14px; color: #666; white-space: pre-wrap; margin-bottom: 1rem; min-height: 40px; }
+
+.cal-nav button {
+  background: none !important;
+  border: 1px solid #ddd !important;
+  border-radius: 8px !important;
+  padding: 6px 14px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  color: #111 !important;
+}
+
+.cal-nav button:hover {
+  background: #f5f5f5 !important;
+}
+
+.add-btn {
+  margin-top: 6px !important;
+  width: 100% !important;
+  background: none !important;
+  border: 1px dashed #ddd !important;
+  border-radius: 8px !important;
+  padding: 4px !important;
+  font-size: 12px !important;
+  color: #aaa !important;
+  cursor: pointer !important;
+}

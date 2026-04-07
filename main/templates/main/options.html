@@ -1,0 +1,23 @@
+{% extends 'main/base.html' %}
+{% load static %}
+{% block title %}Induction{% endblock %}
+
+{% block content %}
+<h2>Options</h2>
+
+<form id="dayOptionsForm">
+  <h3>Choose which days to show on your calendar:</h3>
+  <div class="day-checkboxes">
+    <label><input type="checkbox" value="0" /> Sun</label>
+    <label><input type="checkbox" value="1" /> Mon</label>
+    <label><input type="checkbox" value="2" /> Tue</label>
+    <label><input type="checkbox" value="3" /> Wed</label>
+    <label><input type="checkbox" value="4" /> Thu</label>
+    <label><input type="checkbox" value="5" /> Fri</label>
+    <label><input type="checkbox" value="6" /> Sat</label>
+  </div>
+  <button type="button" onclick="saveDayPrefs()">Save</button>
+</form>
+
+<script src="{% static 'main/options.js' %}"></script>
+{% endblock %}

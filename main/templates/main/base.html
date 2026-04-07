@@ -13,6 +13,8 @@
         <div class="user-info">
             {% if request.user.is_authenticated %}
                 <span>{{ request.user.username }}</span>
+                    <span><a href="{% url 'main:home' %}">Home</a></span>
+                    <span><a href="{% url 'main:options' %}">Options</a></span>
                 <form action="{% url 'users:logout' %}" method="post">
                     {% csrf_token %}
                     <button type="submit">Logout</button>
