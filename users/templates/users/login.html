@@ -1,14 +1,21 @@
 {% extends 'main/base.html' %}
 {% load static %}
-{% block title %}Login - Induction{% endblock %}
-
+{% block title %}Cosmos - Login{% endblock %}
 {% block content %}
+<h1 style="text-align: center;">Welcome to Cosmos</h1>
+
     <div class="login-container">
         <form action="{% url 'users:login' %}" method="post">
             {% csrf_token %}
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <input type="submit" value="Login">
+            <div align="center" style="margin-bottom: 20px;">
+                <input type="text" name="username" placeholder="Username" required>
+            </div>
+            <div align="center">
+                <input type="password" name="password" placeholder="Password" required>
+            </div>
+            <div align="center"; style="margin-top: 20px;">
+                <button type="submit">Login</button>
+            </div>
         </form>
     </div>
 {% endblock %}

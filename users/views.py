@@ -29,6 +29,7 @@ def register(request):
     return render(request, 'users/register.html', {'form': form})
 
 @login_required(login_url='users:login')
+
 def user(request):
     return render(request, "main/home.html")
 

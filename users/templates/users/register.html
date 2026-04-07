@@ -1,12 +1,25 @@
 {% extends 'main/base.html' %}
 {% load static %}
-{% block title %}Register - Induction{% endblock %}
+{% load widget_tweaks %}
+{% block title %}Register - Cosmos{% endblock %}
 {% block content %}
-    <h1>Register for Induction</h1>
-    <form method="post">
+    <h1 align="center">Welcome to Cosmos</h1>
+        
+        <form align="center" method="post" class="auth-form">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Register</button>
-    </form>
-    <p>Already have an account? <a href="{% url 'users:login' %}">Login</a></p>
+        
+        {% for field in form %}
+            <div class="form-group">
+                <label style="text-align: left; margin-left: 290px;" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {% render_field field placeholder=field.label %}
+                {% if field.errors %}
+                    <div class="error">{{ field.errors }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <button align="center" type="submit" class="submit-btn">Register</button>
+        </form>
+
+    <p style="text-align: center; padding: 20px;">Already have an account? <a href="{% url 'users:login' %}">Login</a></p>
 {% endblock %}

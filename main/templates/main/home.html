@@ -3,8 +3,7 @@
 {% block title %}Induction{% endblock %}
 
 {% block content %}
-<h1>Induction</h1>
-
+<h1>Welcome, {{ request.user.username }}!</h1>
 <div class="cal-wrap">
   <div class="cal-header">
     <span class="cal-title" id="weekLabel"></span>
@@ -19,4 +18,17 @@
 <div id="modal" style="display:none"></div>
 
 <script src="{% static 'main/calendar.js' %}"></script>
+
+<h2>Your Communities</h2>
+    <ul>
+        {% for community in communities %}
+        <li>
+            <a href="{% url 'main:community_detail' community.id %}">{{ community.name }}</a>
+
+        </li>
+        {% empty %}
+        <li>You are not a member of any community yet.</li>
+        {% endfor %}
+    </ul>
+<a href="{% url 'main:create_community' %}">Create a New Community</a>
 {% endblock %}

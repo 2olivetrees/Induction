@@ -1,0 +1,11 @@
+{% extends 'main/base.html' %}
+{% block title %}Create a New Community{% endblock %}
+{% block content %}
+    <h1>Create a New Community</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Create Community</button>
+    </form>
+    <a href="{% url 'main:home' %}">Back to Homepage</a>
+{% endblock %}
