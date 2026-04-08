@@ -35,7 +35,7 @@ body {
 
 .header-left h1 {
   margin: 0;
-  font-size: 20px;
+  font-size: 30px;
   font-weight: 500;
   color: #EDE8FF;
   letter-spacing: -0.02em;
@@ -91,7 +91,7 @@ main {
 
 h1 {
   font-family: 'M PLUS Rounded 1c', sans-serif;
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 500;
   color: #EDE8FF;
   margin-bottom: 1.5rem;
@@ -100,7 +100,7 @@ h1 {
 
 h2 {
   font-family: 'M PLUS Rounded 1c', sans-serif;
-  font-size: 20px;
+  font-size: 35px;
   font-weight: 500;
   color: #EDE8FF;
   margin-bottom: 1rem;
@@ -110,6 +110,13 @@ h2 {
 h3 {
   font-family: 'M PLUS Rounded 1c', sans-serif;
   letter-spacing: -0.02em;
+}
+
+h4 {
+  font-size: 45px;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 550;
 }
 
 a {
@@ -214,6 +221,12 @@ button {
   color: #C8B8F8;
 }
 
+.cal-nav .view-btn.active {
+  background: #C8B8F8;
+  color: #1A1A2E;
+  border-color: #C8B8F8;
+}
+
 .week-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -224,9 +237,32 @@ button {
 
 .time-col{
   position:relative;
-  height:1200px;
+  height:600px;
   border-right:1px solid #2E2B50;
   background:transparent;
+  padding: 0;
+}
+
+.calendar.day-view .time-col {
+  height: 600px;
+}
+
+.calendar-body {
+  overflow-y: auto;
+  max-height: 600px;
+}
+
+.time-col .time-slot {
+  height: 50px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+  padding-left: 4px;
+  font-size: 11px;
+  color: #9B8FC4;
+  opacity: 0.7;
+  box-sizing: border-box;
 }
 
 .time-col .day-header {
@@ -283,29 +319,12 @@ button {
 }
 
 .event-pill.community {
-  background: #1E2E3A;
-  color: #F9B8D4;
+  background: #599ed2;
+  color: #ffffff;
 }
 
 .event-pill.community:hover {
   background: #263A4A;
-}
-
-.add-btn {
-  margin-top: 6px;
-  width: 100%;
-  background: none;
-  border: 1px dashed #2E2B50;
-  border-radius: 8px;
-  padding: 4px;
-  font-size: 12px;
-  color: #9B8FC4;
-  cursor: pointer;
-}
-
-.add-btn:hover {
-  border-color: #C8B8F8;
-  color: #C8B8F8;
 }
 
 /* ── Monthly Calendar ── */
@@ -798,6 +817,7 @@ form button[type="submit"]:hover {
   display:flex;
   flex-direction:column;
   height:100%;
+  width:100%;
 }
 
 .calendar-header,
@@ -805,6 +825,12 @@ form button[type="submit"]:hover {
 .calendar-body{
   display:grid;
   grid-template-columns:60px repeat(7,1fr);
+}
+
+.calendar.day-view .calendar-header,
+.calendar.day-view .all-day-grid,
+.calendar.day-view .calendar-body {
+  grid-template-columns:60px 1fr;
 }
 
 .calendar-body{
@@ -839,7 +865,7 @@ form button[type="submit"]:hover {
 
 .day-col{
   position:relative;
-  height:1200px; /* 24h × 50px */
+  height:1200px; /* 24h × 50px, scrollable within parent */
   background:#212140;
   border:1px solid #2E2B50;
   border-radius:12px;
@@ -853,4 +879,7 @@ form button[type="submit"]:hover {
 
 .time-slot:hover{
   background:rgba(200,184,248,0.05);
+}
+.spacer {
+  height: 40px;
 }

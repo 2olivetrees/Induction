@@ -1,12 +1,18 @@
 {% extends 'main/base.html' %}
-{% block title %}{{ community.name }}{% endblock %}
+{% block title %}{{ community.name }} Settings{% endblock %}
 {% block content %}
-<h1>{{ community.name }}</h1>
+<h1>{{ community.name }} Settings</h1>
 
- {% if community.admin == request.user %}
-                <a href="{% url 'main:delete_community' community.id %}" class="warning-link" onclick="return confirm('Are you sure you want to delete this community?');">Delete Community</a>
-            {% else %}
-                <a href="{% url 'main:leave_community' community.id %}" class="warning-link" onclick="return confirm('Are you sure you want to leave this community?');">Leave Community</a>
-            {% endif %}
-            
+{% if community.admin == request.user %}
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save Settings</button>
+  </form>
+  <a href="{% url 'main:community_detail' community.id %}">Back to Community</a>
+{% else %}
+  <p>You must be a community admin to edit this community.</p>
+  <a href="{% url 'main:community_detail' community.id %}">Back to Community</a>
+{% endif %}
+
 {% endblock %}

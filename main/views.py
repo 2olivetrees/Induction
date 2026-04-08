@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_http_methods
+from django.utils import timezone
 from requests import request
 from .models import Event, Community
 from django.http import HttpResponse 
@@ -42,7 +43,21 @@ def community_settings(request, community_id):
     community = Community.objects.filter(id=community_id).first()
     if not community:
         return redirect('main:home')
-    return render(request, 'main/community_settings.html', {'community': community})
+
+    if request.user != community.admin:
+        messages.error(request, "Only community admins can edit settings.")
+        return redirect('main:community_detail', community_id=community.id)
+
+    if request.method == 'POST':
+        form = CommunityCreationForm(request.POST, instance=community, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Community settings updated.")
+            return redirect('main:community_detail', community_id=community.id)
+    else:
+        form = CommunityCreationForm(instance=community, user=request.user)
+
+    return render(request, 'main/community_settings.html', {'community': community, 'form': form})
 
 @login_required
 def get_events(request):
@@ -55,30 +70,36 @@ def get_events(request):
 
     events = []
 
+    def serialize_dt(dt):
+        if not dt:
+            return None
+        return dt.strftime('%Y-%m-%dT%H:%M:%S')
+
     for e in personal:
         events.append({
             'id': e.id,
             'title': e.title,
-            'start': e.start.isoformat(),
-            'end': e.end.isoformat() if e.end else None,
+            'start': serialize_dt(e.start),
+            'end': serialize_dt(e.end),
             'notes': e.notes,
             'all_day': e.all_day,
             'is_community_event': False,
-})
-        
+            'color': e.color,
+        })
 
     for e in community_events:
         events.append({
             'id': e.id,
             'title': e.title,
-            'start': e.start.isoformat(),
-            'end': e.end.isoformat() if e.end else None,
+            'start': serialize_dt(e.start),
+            'end': serialize_dt(e.end),
             'notes': e.notes,
             'all_day': e.all_day,
             'is_community_event': True,
             'community_name': e.community.name,
             'community_id': e.community.id,
-})
+            'color': e.community.color if e.community else e.color,
+        })
 
     return JsonResponse({'events': events})
 
@@ -125,6 +146,7 @@ def create_event(request):
             owner=request.user,
             community=community,
             is_community_event=True,
+            color=community.color,
         )
     else:
         event = Event.objects.create(
@@ -204,18 +226,24 @@ def get_community_events(request, community_id):
     
     events = Event.objects.filter(community=community, is_community_event=True)
     
+    def serialize_dt(dt):
+        if not dt:
+            return None
+        return dt.strftime('%Y-%m-%dT%H:%M:%S')
+
     event_list = []
     for e in events:
         event_list.append({
             'id': e.id,
             'title': e.title,
-            'start': e.start.isoformat(),
-            'end': e.end.isoformat() if e.end else None,
+            'start': serialize_dt(e.start),
+            'end': serialize_dt(e.end),
             'notes': e.notes,
             'all_day': e.all_day,
             'is_community_event': True,
             'community_name': community.name,
             'community_id': community.id,
+            'color': community.color,
         })
     
     return JsonResponse({'events': event_list})
@@ -259,7 +287,8 @@ def create_community_event(request, community_id):
         all_day=all_day,
         owner=request.user,
         community=community,
-        is_community_event=True
+        is_community_event=True,
+        color=community.color,
     )
 
     return JsonResponse({
@@ -401,69 +430,3 @@ def delete_event(request, event_id):
     event.delete()
     return JsonResponse({'success': True})
 
-@login_required
-def get_community_events(request, community_id):
-    community = Community.objects.filter(id=community_id, members=request.user).first()
-    if not community:
-        return JsonResponse({'error': 'Not found'}, status=404)
-    
-    events = Event.objects.filter(community=community, is_community_event=True)
-    return JsonResponse({'events': [{
-    'id': e.id,
-    'title': e.title,
-    'notes': e.notes,
-    'start': e.start.isoformat(),
-    'end': e.end.isoformat() if e.end else None,
-    'allDay': e.all_day,
-    'is_community_event': True,
-    'community_name': community.name,
-    'community_id': community.id,
-        } for e in events]})
-
-
-@login_required
-@require_POST
-def create_community_event(request, community_id):
-
-    community = Community.objects.filter(
-        id=community_id,
-        members=request.user
-    ).first()
-
-    if not community:
-        return JsonResponse({'error': 'Not found'}, status=404)
-
-    data = json.loads(request.body)
-
-    title = data.get('title','').strip()
-    if not title:
-        return JsonResponse({'error':'Title required'}, status=400)
-
-    notes = data.get('notes','')
-
-    start_str = data.get('start')
-    end_str = data.get('end')
-    all_day = data.get('all_day', False)
-
-    start = datetime.fromisoformat(start_str) if start_str else None
-    end = datetime.fromisoformat(end_str) if end_str else None
-
-    # default 1 hour if no end
-    if start and not end and not all_day:
-        end = start + timedelta(hours=1)
-
-    event = Event.objects.create(
-        title=title,
-        notes=notes,
-        start=start,
-        end=end,
-        all_day=all_day,
-        community=community,
-        owner=request.user,
-        is_community_event=True
-    )
-
-    return JsonResponse({
-        'id': event.id,
-        'title': event.title
-    })

@@ -5,13 +5,13 @@ const MONTHS = ['January','February','March','April','May','June',
 let calOffset = 0;
 let allEvents = [];
 let fetchUrl = null;
-let currentView = loadViewPreference(); // 'week' or 'month'
+let currentView = loadViewPreference(); // 'week', 'month', or 'day'
 let activeDateKey = null;
 
 function loadViewPreference() {
   try {
     const saved = localStorage.getItem('cal_view');
-    return saved === 'month' ? 'month' : 'week';
+    return ['week', 'month', 'day'].includes(saved) ? saved : 'week';
   } catch(e) {
     return 'week';
   }
@@ -22,11 +22,34 @@ function initCalendar(url){
     fetchEvents();
 }
 
+function normalizeTimestamp(ts) {
+  if (!ts) return ts;
+  // Remove Z or timezone offset for local display
+  return ts.replace(/Z|([+-]\d{2}:?\d{2})$/, '');
+}
+
+function normalizeEventTimestamps(events) {
+  return events.map(ev => ({
+    ...ev,
+    start: normalizeTimestamp(ev.start),
+    end: normalizeTimestamp(ev.end),
+  }));
+}
+
+function applyEventColor(pill, ev) {
+  if (!ev.color) return;
+  pill.style.background = ev.color;
+  if (ev.is_community_event) {
+    pill.style.color = '#fff';
+    pill.style.borderColor = 'rgba(0,0,0,0.15)';
+  }
+}
+
 async function fetchEvents(){
     const res = await fetch(fetchUrl);
     const data = await res.json();
 
-    allEvents = data.events;
+    allEvents = normalizeEventTimestamps(data.events);
 
     renderCalendar();
 }
@@ -53,10 +76,34 @@ function loadDayPrefs() {
 }
 
 function toggleView() {
-  currentView = currentView === 'week' ? 'month' : 'week';
+  if (currentView === 'week') {
+    currentView = 'month';
+  } else if (currentView === 'month') {
+    currentView = 'day';
+  } else {
+    currentView = 'week';
+  }
   localStorage.setItem('cal_view', currentView);
-  calOffset = 0; // Reset to current when switching views
+  if (currentView !== 'week') {
+    calOffset = 0;
+  }
   renderCalendar();
+}
+
+function setView(view) {
+  if (!['day', 'week', 'month'].includes(view)) return;
+  currentView = view;
+  localStorage.setItem('cal_view', currentView);
+  if (currentView !== 'week') {
+    calOffset = 0;
+  }
+  renderCalendar();
+}
+
+function updateViewButtons() {
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === currentView);
+  });
 }
 
 
@@ -107,8 +154,9 @@ function renderMonthlyCalendar() {
     `;
     
     dayCell.onclick = (e) => {
-      if (!e.target.closest('.event-pill') && isCurrentMonth) {
-        openAdd(key);
+      if (e.target.closest('.event-pill')) return;
+      if (isCurrentMonth) {
+        openDayView(key);
       }
     };
     
@@ -121,8 +169,9 @@ function renderMonthlyCalendar() {
       .slice(0, 3) // Limit to 3 events per day in month view
       .forEach(ev => {
         const pill = document.createElement('div');
-        pill.className = 'event-pill month-event' + (ev.all_day ? ' all-day' : '');
+        pill.className = 'event-pill month-event' + (ev.all_day ? ' all-day' : '') + (ev.is_community_event ? ' community' : '');
         pill.textContent = ev.title;
+        applyEventColor(pill, ev);
         pill.dataset.id = ev.id;
         pill.dataset.start = ev.start;
         pill.onclick = () => openView(ev);
@@ -142,15 +191,18 @@ function renderMonthlyCalendar() {
 
 function renderCalendar(){
 
+  const calendarEl = document.querySelector('.calendar');
   const header = document.getElementById("calendarHeader");
   const allDay = document.getElementById("allDayGrid");
   const body = document.getElementById("calendarBody");
   const monthGrid = document.getElementById("weekGrid");
 
-  if(!header || !allDay || !body || !monthGrid){
+  if(!calendarEl || !header || !allDay || !body || !monthGrid){
       console.error("Calendar containers missing");
       return;
   }
+
+  calendarEl.classList.toggle('day-view', currentView === 'day');
 
   if(currentView === "month"){
 
@@ -159,20 +211,23 @@ function renderCalendar(){
       body.parentElement.style.display = "none";
 
       monthGrid.style.display = "grid";
-
       renderMonthlyCalendar();
 
-  } else {
-
+  } else if (currentView === 'day') {
       header.style.display = "grid";
       allDay.style.display = "grid";
       body.parentElement.style.display = "block";
-
       monthGrid.style.display = "none";
+      renderDailyCalendar();
 
+  } else {
+      header.style.display = "grid";
+      allDay.style.display = "grid";
+      body.parentElement.style.display = "block";
+      monthGrid.style.display = "none";
       renderWeeklyCalendar();
   }
-
+  updateViewButtons();
 }
 
 function renderWeeklyCalendar() {
@@ -208,6 +263,8 @@ function renderWeeklyCalendar() {
     const head = document.createElement("div");
     head.className = "day-head";
     head.textContent = DAYS[d.getDay()] + " " + d.getDate();
+    head.style.cursor = "pointer";
+    head.onclick = () => openDayView(dateKey(d));
 
     header.appendChild(head);
 
@@ -297,8 +354,9 @@ function renderWeeklyCalendar() {
     allDayEvents.forEach(ev => {
 
       const pill = document.createElement("div");
-      pill.className = "event-pill all-day";
+      pill.className = "event-pill all-day" + (ev.is_community_event ? " community" : "");
       pill.textContent = ev.title;
+      applyEventColor(pill, ev);
 
       pill.onclick = () => openView(ev);
 
@@ -310,7 +368,9 @@ function renderWeeklyCalendar() {
     timedEvents.forEach(ev => {
 
       const pill = document.createElement("div");
-      pill.className = "event-pill timed-event";
+      pill.className = "event-pill timed-event" + (ev.is_community_event ? " community" : "");
+      pill.textContent = ev.title;
+      applyEventColor(pill, ev);
 
       const start = new Date(ev.start);
       const end = new Date(ev.end || new Date(start.getTime() + 60*60000));
@@ -358,7 +418,114 @@ function renderWeeklyCalendar() {
 
   // DEFAULT SCROLL 8AM
   scrollToDefaultHour();
+}
 
+function renderDailyCalendar() {
+  const key = activeDateKey || dateKey(new Date());
+  const dateParts = key.split('-');
+  const d = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
+  const today = dateKey(new Date());
+
+  document.getElementById('weekLabel').textContent =
+    DAYS[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+
+  const header = document.getElementById('calendarHeader');
+  const allDay = document.getElementById('allDayGrid');
+  const body = document.getElementById('calendarBody');
+
+  header.innerHTML = '';
+  allDay.innerHTML = '';
+  body.innerHTML = '';
+
+  const spacer = document.createElement('div');
+  header.appendChild(spacer);
+
+  const head = document.createElement('div');
+  head.className = 'day-head';
+  head.textContent = DAYS[d.getDay()] + ' ' + d.getDate();
+  header.appendChild(head);
+
+  const spacer2 = document.createElement('div');
+  allDay.appendChild(spacer2);
+
+  const allDayCol = document.createElement('div');
+  allDayCol.className = 'all-day-col';
+  if (key === today) allDayCol.classList.add('today');
+  allDay.appendChild(allDayCol);
+
+  const timeCol = document.createElement('div');
+  timeCol.className = 'time-col';
+  body.appendChild(timeCol);
+
+  const dayCol = document.createElement('div');
+  dayCol.className = 'day-col';
+  if (key === today) dayCol.classList.add('today');
+  body.appendChild(dayCol);
+
+  for (let h = 0; h < 24; h++) {
+    const label = document.createElement('div');
+    label.className = 'time-slot';
+    label.textContent = h + ':00';
+    timeCol.appendChild(label);
+
+    const slot = document.createElement('div');
+    slot.className = 'time-slot';
+    slot.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openAdd(key, h);
+    });
+    dayCol.appendChild(slot);
+  }
+
+  const dayEvents = allEvents.filter(ev => (ev.start || '').split('T')[0] === key);
+  const allDayEvents = dayEvents.filter(ev => ev.all_day);
+  const timedEvents = dayEvents.filter(ev => !ev.all_day);
+
+  allDayEvents.forEach(ev => {
+    const pill = document.createElement('div');
+    pill.className = 'event-pill all-day' + (ev.is_community_event ? ' community' : '');
+    pill.textContent = ev.title;
+    applyEventColor(pill, ev);
+    pill.onclick = () => openView(ev);
+    allDayCol.appendChild(pill);
+  });
+
+  timedEvents.forEach(ev => {
+    const pill = document.createElement('div');
+    pill.className = 'event-pill timed-event' + (ev.is_community_event ? ' community' : '');
+    pill.textContent = ev.title;
+    applyEventColor(pill, ev);
+    const start = new Date(ev.start);
+    const end = new Date(ev.end || new Date(start.getTime() + 60 * 60000));
+    const duration = (end - start) / 60000;
+    const hour = start.getHours();
+    const minute = start.getMinutes();
+    const slotHeight = 50;
+    const minuteHeight = slotHeight / 60;
+    const top = (hour * slotHeight) + (minute * minuteHeight);
+    const height = Math.max(duration * minuteHeight, 24);
+    pill.style.position = 'absolute';
+    pill.style.top = `${top}px`;
+    pill.style.height = `${height}px`;
+    pill.style.left = '3px';
+    pill.style.right = '3px';
+    pill.onclick = () => openView(ev);
+    dayCol.appendChild(pill);
+  });
+
+  dayCol.onclick = (e) => {
+    if (e.target.closest('.event-pill')) return;
+    openAdd(key);
+  };
+
+  scrollToDefaultHour();
+}
+
+function openDayView(dateKey) {
+  activeDateKey = dateKey;
+  currentView = 'day';
+  localStorage.setItem('cal_view', currentView);
+  renderCalendar();
 }
 
 function openAdd(dateKey, hour=null){
@@ -656,8 +823,10 @@ function showModal(content){
 
 function scrollToDefaultHour(){
 
-  const scroll = document.getElementById("calendarScroll");
+  const scroll = document.getElementById("calendarBody");
 
-  scroll.scrollTop = 8 * 50;
+  if (scroll) {
+    scroll.scrollTop = 8 * 50;
+  }
 
 }

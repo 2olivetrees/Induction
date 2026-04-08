@@ -3,18 +3,21 @@
 {% block title %}Cosmos{% endblock %}
 
 {% block content %}
-<h1>Welcome, {% if request.user.profile.nickname %}{{ request.user.profile.nickname }}{% else %}{{ request.user.username }}{% endif %}!</h1>
+<h4 align="center">Welcome, {% if request.user.profile.nickname %}{{ request.user.profile.nickname }}{% else %}{{ request.user.username }}{% endif %}!</h4>
+<div class="spacer"></div>
+<h2> Your Calendar </h2>
 <div class="cal-wrap">
 
   <div class="cal-header">
     <div id="weekLabel" class="cal-title"></div>
 
     <div class="cal-nav">
-      <button onclick="toggleView()">toggle view</button>
+      <button class="view-btn" data-view="day" onclick="setView('day')">Day</button>
+      <button class="view-btn" data-view="week" onclick="setView('week')">Week</button>
+      <button class="view-btn" data-view="month" onclick="setView('month')">Month</button>
       <button onclick="changeWeek(-1)">← prev</button>
-      <button onclick="changeWeek(0)">today</button>
+      <button onclick="changeWeek(0)">Today</button>
       <button onclick="changeWeek(1)">next →</button>
-      <button onclick="goToday()">Today</button>
     </div>
   </div>
 
@@ -37,7 +40,8 @@
 <div id="modal" style="display:none"></div>
 <script src="{% static 'main/calendar_core.js' %}"></script>
 <script src="{% static 'main/calendar_home.js' %}"></script>
-<h2>Your Communities</h2>
+<div class="spacer"></div>
+<h2 align="center">Your Communities</h2>
     <ul>
         {% for community in communities %}
         <li>
@@ -48,5 +52,5 @@
         <li>You are not a member of any community yet.</li>
         {% endfor %}
     </ul>
-<a href="{% url 'main:create_community' %}">Create a New Community</a>
+    <a href="{% url 'main:create_community' %}">Create a New Community</a>
 {% endblock %}

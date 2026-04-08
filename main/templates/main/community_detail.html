@@ -8,6 +8,10 @@
   <p>{{ community.description }}</p>
 {% endif %}
 
+{% if community.admin == request.user %}
+  <p><a href="{% url 'main:community_settings' community.id %}">Edit community settings</a></p>
+{% endif %}
+
 <h2>Community Calendar</h2>
 <div class="cal-wrap">
 
@@ -15,11 +19,12 @@
     <div id="weekLabel" class="cal-title"></div>
 
     <div class="cal-nav">
-      <button onclick="toggleView()">toggle view</button>
+      <button class="view-btn" data-view="day" onclick="setView('day')">Day</button>
+      <button class="view-btn" data-view="week" onclick="setView('week')">Week</button>
+      <button class="view-btn" data-view="month" onclick="setView('month')">Month</button>
       <button onclick="changeWeek(-1)">← prev</button>
-      <button onclick="changeWeek(0)">today</button>
+      <button onclick="changeWeek(0)">Today</button>
       <button onclick="changeWeek(1)">next →</button>
-      <button onclick="goToday()">Today</button>
     </div>
   </div>
 
