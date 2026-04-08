@@ -5,20 +5,38 @@
 {% block content %}
 <h1>Welcome, {% if request.user.profile.nickname %}{{ request.user.profile.nickname }}{% else %}{{ request.user.username }}{% endif %}!</h1>
 <div class="cal-wrap">
+
   <div class="cal-header">
-    <span class="cal-title" id="weekLabel"></span>
+    <div id="weekLabel" class="cal-title"></div>
+
     <div class="cal-nav">
+      <button onclick="toggleView()">toggle view</button>
       <button onclick="changeWeek(-1)">← prev</button>
       <button onclick="changeWeek(0)">today</button>
       <button onclick="changeWeek(1)">next →</button>
+      <button onclick="goToday()">Today</button>
     </div>
   </div>
-  <div class="week-grid" id="weekGrid"></div>
+
+  <div class="calendar">
+
+    <!-- weekly view -->
+    <div id="calendarHeader" class="calendar-header"></div>
+    <div id="allDayGrid" class="all-day-grid"></div>
+
+    <div id="calendarScroll">
+      <div id="calendarBody" class="calendar-body"></div>
+    </div>
+
+    <!-- monthly view -->
+    <div id="weekGrid" class="week-grid" style="display:none"></div>
+
+  </div>
+
 </div>
 <div id="modal" style="display:none"></div>
-
-<script src="{% static 'main/calendar.js' %}"></script>
-
+<script src="{% static 'main/calendar_core.js' %}"></script>
+<script src="{% static 'main/calendar_home.js' %}"></script>
 <h2>Your Communities</h2>
     <ul>
         {% for community in communities %}

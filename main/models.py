@@ -25,10 +25,29 @@ class CommunityJoinRequest(models.Model):
 class Event(models.Model):
     title = models.CharField(max_length=200)
     notes = models.TextField(blank=True)
-    date = models.DateField()
-    owner = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE, related_name='personal_events')
-    community = models.ForeignKey(Community, null=True, blank=True, on_delete=models.CASCADE, related_name='events')
+    color = models.CharField(max_length=7, default="#7ebbf8")
+    start = models.DateTimeField()
+    end = models.DateTimeField(null=True, blank=True)
+    all_day = models.BooleanField(default=True)
+
+    owner = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='personal_events'
+    )
+
+    community = models.ForeignKey(
+        Community,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='events'
+    )
+
     is_community_event = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -58,21 +59,26 @@ def get_events(request):
         events.append({
             'id': e.id,
             'title': e.title,
+            'start': e.start.isoformat(),
+            'end': e.end.isoformat() if e.end else None,
             'notes': e.notes,
-            'date': str(e.date),
+            'all_day': e.all_day,
             'is_community_event': False,
-        })
+})
+        
 
     for e in community_events:
         events.append({
             'id': e.id,
             'title': e.title,
+            'start': e.start.isoformat(),
+            'end': e.end.isoformat() if e.end else None,
             'notes': e.notes,
-            'date': str(e.date),
+            'all_day': e.all_day,
             'is_community_event': True,
             'community_name': e.community.name,
             'community_id': e.community.id,
-        })
+})
 
     return JsonResponse({'events': events})
 
@@ -85,7 +91,26 @@ def create_event(request):
     if not title:
         return JsonResponse({'error': 'Title required'}, status=400)
 
+    # Parse the start date/time string to datetime
+    date_str = data.get('start') or data.get('date')
+    if not date_str:
+        return JsonResponse({'error': 'Date required'}, status=400)
+    
+    try:
+        start_datetime = datetime.fromisoformat(date_str)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid date format'}, status=400)
+
     community_id = data.get('community_id')
+    all_day = data.get('all_day', False)
+    end_str = data.get('end')
+    end_datetime = None
+
+    if end_str:
+        try:
+            end_datetime = datetime.fromisoformat(end_str)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid end date format'}, status=400)
 
     if community_id:
         community = Community.objects.filter(id=community_id, members=request.user).first()
@@ -94,7 +119,10 @@ def create_event(request):
         event = Event.objects.create(
             title=title,
             notes=data.get('notes', ''),
-            date=data.get('date'),
+            start=start_datetime,
+            end=end_datetime,
+            all_day=all_day,
+            owner=request.user,
             community=community,
             is_community_event=True,
         )
@@ -102,12 +130,206 @@ def create_event(request):
         event = Event.objects.create(
             title=title,
             notes=data.get('notes', ''),
-            date=data.get('date'),
+            start=start_datetime,
+            end=end_datetime,
+            all_day=all_day,
             owner=request.user,
             is_community_event=False,
         )
 
     return JsonResponse({'id': event.id, 'title': event.title})
+
+
+@login_required
+@require_POST
+def edit_event(request, event_id):
+    try:
+        event = Event.objects.get(id=event_id)
+    except Event.DoesNotExist:
+        return JsonResponse({'error': 'Event not found'}, status=404)
+    
+    # Check permissions
+    if event.owner != request.user and not (event.is_community_event and event.community.members.filter(id=request.user.id).exists()):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    data = json.loads(request.body)
+    title = data.get('title', '').strip()
+    if not title:
+        return JsonResponse({'error': 'Title required'}, status=400)
+    
+    notes = data.get('notes', '')
+    all_day = data.get('all_day', event.all_day)
+    
+    if 'start' in data and data['start']:
+        try:
+            event.start = datetime.fromisoformat(data['start'])
+        except ValueError:
+            return JsonResponse({'error': 'Invalid start date format'}, status=400)
+
+    if 'end' in data:
+        try:
+            event.end = datetime.fromisoformat(data['end']) if data['end'] else None
+        except ValueError:
+            return JsonResponse({'error': 'Invalid end date format'}, status=400)
+    
+    event.title = title
+    event.notes = notes
+    event.all_day = all_day
+    event.save()
+    
+    return JsonResponse({'id': event.id, 'title': event.title})
+
+
+@login_required
+@require_POST
+def delete_event(request, event_id):
+    try:
+        event = Event.objects.get(id=event_id)
+    except Event.DoesNotExist:
+        return JsonResponse({'error': 'Event not found'}, status=404)
+    
+    # Check permissions
+    if event.owner != request.user and not (event.is_community_event and event.community.members.filter(id=request.user.id).exists()):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    event.delete()
+    return JsonResponse({'success': True})
+
+
+@login_required
+def get_community_events(request, community_id):
+    community = Community.objects.filter(id=community_id, members=request.user).first()
+    if not community:
+        return JsonResponse({'error': 'Community not found'}, status=404)
+    
+    events = Event.objects.filter(community=community, is_community_event=True)
+    
+    event_list = []
+    for e in events:
+        event_list.append({
+            'id': e.id,
+            'title': e.title,
+            'start': e.start.isoformat(),
+            'end': e.end.isoformat() if e.end else None,
+            'notes': e.notes,
+            'all_day': e.all_day,
+            'is_community_event': True,
+            'community_name': community.name,
+            'community_id': community.id,
+        })
+    
+    return JsonResponse({'events': event_list})
+
+
+@login_required
+@require_POST
+def create_community_event(request, community_id):
+
+    community = Community.objects.filter(
+        id=community_id,
+        members=request.user
+    ).first()
+
+    if not community:
+        return JsonResponse({'error': 'Community not found'}, status=404)
+
+    data = json.loads(request.body)
+
+    title = data.get('title', '').strip()
+    if not title:
+        return JsonResponse({'error': 'Title required'}, status=400)
+
+    start_str = data.get('start')
+    end_str = data.get('end')
+    all_day = data.get("all_day", False)
+    if not start_str:
+        return JsonResponse({'error': 'Start time required'}, status=400)
+
+    try:
+        start = datetime.fromisoformat(start_str)
+        end = datetime.fromisoformat(end_str) if end_str else None
+    except ValueError:
+        return JsonResponse({'error': 'Invalid datetime format'}, status=400)
+
+    event = Event.objects.create(
+        title=title,
+        notes=data.get('notes', ''),
+        start=start,
+        end=end,
+        all_day=all_day,
+        owner=request.user,
+        community=community,
+        is_community_event=True
+    )
+
+    return JsonResponse({
+        'id': event.id,
+        'title': event.title,
+        'start': event.start,
+        'end': event.end
+    })
+
+
+@login_required
+@require_POST
+def edit_community_event(request, community_id, event_id):
+    
+    community = Community.objects.filter(id=community_id, members=request.user).first()
+    if not community:
+        return JsonResponse({'error': 'Community not found'}, status=404)
+    
+    try:
+        event = Event.objects.get(id=event_id, community=community, is_community_event=True)
+    except Event.DoesNotExist:
+        return JsonResponse({'error': 'Event not found'}, status=404)
+    
+    data = json.loads(request.body)
+    title = data.get('title', '').strip()
+    if not title:
+        return JsonResponse({'error': 'Title required'}, status=400)
+    
+    notes = data.get('notes', '')
+    all_day = data.get('all_day', event.all_day)
+    
+    # Update start and end times if provided
+    if data.get('start'):
+        try:
+            event.start = datetime.fromisoformat(data['start'])
+        except ValueError:
+            return JsonResponse({'error': 'Invalid start date format'}, status=400)
+    
+    if data.get('end'):
+        try:
+            event.end = datetime.fromisoformat(data['end']) if data['end'] else None
+        except ValueError:
+            return JsonResponse({'error': 'Invalid end date format'}, status=400)
+    
+    event.title = title
+    event.notes = notes
+    event.all_day = all_day
+    event.save()
+    
+    return JsonResponse({'id': event.id, 'title': event.title})
+
+    event.save()
+        
+    return JsonResponse({'id': event.id, 'title': event.title})
+
+
+@login_required
+@require_POST
+def delete_community_event(request, community_id, event_id):
+    community = Community.objects.filter(id=community_id, members=request.user).first()
+    if not community:
+        return JsonResponse({'error': 'Community not found'}, status=404)
+    
+    try:
+        event = Event.objects.get(id=event_id, community=community, is_community_event=True)
+    except Event.DoesNotExist:
+        return JsonResponse({'error': 'Event not found'}, status=404)
+    
+    event.delete()
+    return JsonResponse({'success': True})
 
 
 @login_required
@@ -134,7 +356,6 @@ def leave_community(request, community_id):
 
     community.members.remove(request.user)
     for event in community.events.all():
-        event.check_status()
         event.save()
     messages.success(request, f'You left "{community.name}".')
     return redirect("main:home")
@@ -144,8 +365,7 @@ def leave_community(request, community_id):
 @require_http_methods(["POST"])
 def edit_event(request, event_id):
     data = json.loads(request.body)
-    event = Event.objects.filter(id=event_id).first()
-
+    event = get_object_or_404(Event, id=event_id)
     if not event:
         return JsonResponse({'error': 'Event not found'}, status=404)
 
@@ -167,8 +387,7 @@ def edit_event(request, event_id):
 @login_required
 @require_http_methods(["POST"])
 def delete_event(request, event_id):
-    event = Event.objects.filter(id=event_id).first()
-
+    event = get_object_or_404(Event, id=event_id)
     if not event:
         return JsonResponse({'error': 'Event not found'}, status=404)
 
@@ -190,33 +409,61 @@ def get_community_events(request, community_id):
     
     events = Event.objects.filter(community=community, is_community_event=True)
     return JsonResponse({'events': [{
-        'id': e.id,
-        'title': e.title,
-        'notes': e.notes,
-        'date': str(e.date),
-        'is_community_event': True,
-        'community_name': community.name,
-        'community_id': community.id,
-    } for e in events]})
+    'id': e.id,
+    'title': e.title,
+    'notes': e.notes,
+    'start': e.start.isoformat(),
+    'end': e.end.isoformat() if e.end else None,
+    'allDay': e.all_day,
+    'is_community_event': True,
+    'community_name': community.name,
+    'community_id': community.id,
+        } for e in events]})
 
 
 @login_required
 @require_POST
 def create_community_event(request, community_id):
-    community = Community.objects.filter(id=community_id, members=request.user).first()
+
+    community = Community.objects.filter(
+        id=community_id,
+        members=request.user
+    ).first()
+
     if not community:
         return JsonResponse({'error': 'Not found'}, status=404)
-    
+
     data = json.loads(request.body)
-    title = data.get('title', '').strip()
+
+    title = data.get('title','').strip()
     if not title:
-        return JsonResponse({'error': 'Title required'}, status=400)
-    
+        return JsonResponse({'error':'Title required'}, status=400)
+
+    notes = data.get('notes','')
+
+    start_str = data.get('start')
+    end_str = data.get('end')
+    all_day = data.get('all_day', False)
+
+    start = datetime.fromisoformat(start_str) if start_str else None
+    end = datetime.fromisoformat(end_str) if end_str else None
+
+    # default 1 hour if no end
+    if start and not end and not all_day:
+        end = start + timedelta(hours=1)
+
     event = Event.objects.create(
         title=title,
-        notes=data.get('notes', ''),
-        date=data.get('date'),
+        notes=notes,
+        start=start,
+        end=end,
+        all_day=all_day,
         community=community,
-        is_community_event=True,
+        owner=request.user,
+        is_community_event=True
     )
-    return JsonResponse({'id': event.id, 'title': event.title})
+
+    return JsonResponse({
+        'id': event.id,
+        'title': event.title
+    })
