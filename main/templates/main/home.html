@@ -53,4 +53,15 @@
         {% endfor %}
     </ul>
     <a href="{% url 'main:create_community' %}">Create a New Community</a>
+<h2 align="center">Community Invites</h2>
+<ul>
+    {% for community in invited_communities %}
+    <li>
+        {{ community.name }} - 
+        <a href="{% url 'main:join_community' community.id %}">Accept</a> | 
+        <a href="{% url 'main:decline_invite' community.id %}">Decline</a>
+    </li>
+    {% empty %}
+    <li>You have no pending community invites.</li>
+    {% endfor %}
 {% endblock %}

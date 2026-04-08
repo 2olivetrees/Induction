@@ -1,3 +1,4 @@
+from email.headerregistry import Group
 import json
 from datetime import datetime, timedelta
 from django.contrib import messages
@@ -6,15 +7,20 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST, require_http_methods
 from django.utils import timezone
 from requests import request
-from .models import Event, Community
+from .models import Event, Community, CommunityJoinRequest
 from django.http import HttpResponse 
 from django.shortcuts import get_object_or_404, redirect, render
 from .forms import CommunityCreationForm
+from django.contrib.auth.models import User
 
 @login_required(login_url='users:login')
 def home(request):
     user_communities = Community.objects.filter(members=request.user)
-    return render(request, "main/home.html", {'communities': user_communities})
+    invited_communities = Community.objects.filter(invited_users=request.user)
+    return render(request, "main/home.html", {
+        'communities': user_communities,
+        'invited_communities': invited_communities,
+    })
 
 
 @login_required(login_url='users:login')
@@ -58,6 +64,70 @@ def community_settings(request, community_id):
         form = CommunityCreationForm(instance=community, user=request.user)
 
     return render(request, 'main/community_settings.html', {'community': community, 'form': form})
+
+@login_required
+def invite_users(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
+    users_not_in_community = User.objects.exclude(id__in=community.members.values_list('id', flat=True))
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        invited_user = get_object_or_404(User, id=user_id)
+        if invited_user in community.invited_users.all():
+            messages.info(request, f'{invited_user.profile.nickname} has already been invited.')
+        else:
+            community.invited_users.add(invited_user)
+            messages.success(request, f'Invitation sent to {invited_user.profile.nickname}.')
+        return redirect('main:community_detail', community_id=community.id)
+    return render(request, 'main/invite_users.html', {
+        'community': community,
+        'users_not_in_community': users_not_in_community
+    })
+
+@login_required
+def accept_invitation(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
+    if request.user in community.invited_users.all():
+        community.members.add(request.user)
+        community.invited_users.remove(request.user)
+        messages.success(request, f'You have joined "{community.name}"!')
+    else:
+        messages.error(request, "You don't have an invitation to join this community.")
+    return redirect('main:home')
+
+
+@login_required
+def decline_invite(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
+    if request.user in community.invited_users.all():
+        community.invited_users.remove(request.user)
+        messages.success(request, f'You declined the invite to "{community.name}".')
+    else:
+        messages.error(request, "You don't have a pending invite for this community.")
+    return redirect('main:home')
+
+
+@login_required
+def request_to_join(request, community_id):
+    community = get_object_or_404(Community, id=community_id)
+
+    if request.user in community.members.all():
+        messages.info(request, f'You are already a member of "{community.name}".')
+        return redirect('main:community_detail', community_id=community.id)
+
+    existing_request = CommunityJoinRequest.objects.filter(
+        user=request.user,
+        group=community,
+        is_approved=False
+    ).first()
+
+    if existing_request:
+        messages.info(request, 'You already have a pending join request for this community.')
+        return redirect('main:community_detail', community_id=community.id)
+
+    CommunityJoinRequest.objects.create(user=request.user, group=community)
+    messages.success(request, f'Your request to join "{community.name}" has been submitted.')
+    return redirect('main:community_detail', community_id=community.id)
+
 
 @login_required
 def get_events(request):

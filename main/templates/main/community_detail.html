@@ -8,9 +8,6 @@
   <p>{{ community.description }}</p>
 {% endif %}
 
-{% if community.admin == request.user %}
-  <p><a href="{% url 'main:community_settings' community.id %}">Edit community settings</a></p>
-{% endif %}
 
 <h2>Community Calendar</h2>
 <div class="cal-wrap">
@@ -48,7 +45,24 @@
 <script>
 window.COMMUNITY_ID = {{ community.id }};
 </script>
+<div class="spacer"></div>
+<h2>Members</h2>
+<ul>
+    {% for member in community.members.all %}
+    <li>
+        {{ member.profile.nickname }} {% if member == community.admin %}(admin){% endif %}
+    </li>
+    {% endfor %}    
+</ul>       
+{% if community.admin == request.user %}
+  <a href="{% url 'main:invite_users' community.id %}">Invite Users</a>
 
+{% endif %}
+<div class="spacer"></div>
+{% if community.admin == request.user %}
+  <p><a href="{% url 'main:community_settings' community.id %}">Edit community settings</a></p>
+{% endif %}
 <script src="{% static 'main/calendar_core.js' %}"></script>
 <script src="{% static 'main/calendar_community.js' %}"></script>
+
 {% endblock %}
