@@ -71,6 +71,7 @@ def get_events(request):
             'date': str(e.date),
             'is_community_event': True,
             'community_name': e.community.name,
+            'community_id': e.community.id,
         })
 
     return JsonResponse({'events': events})
@@ -180,3 +181,42 @@ def delete_event(request, event_id):
 
     event.delete()
     return JsonResponse({'success': True})
+
+@login_required
+def get_community_events(request, community_id):
+    community = Community.objects.filter(id=community_id, members=request.user).first()
+    if not community:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    
+    events = Event.objects.filter(community=community, is_community_event=True)
+    return JsonResponse({'events': [{
+        'id': e.id,
+        'title': e.title,
+        'notes': e.notes,
+        'date': str(e.date),
+        'is_community_event': True,
+        'community_name': community.name,
+        'community_id': community.id,
+    } for e in events]})
+
+
+@login_required
+@require_POST
+def create_community_event(request, community_id):
+    community = Community.objects.filter(id=community_id, members=request.user).first()
+    if not community:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    
+    data = json.loads(request.body)
+    title = data.get('title', '').strip()
+    if not title:
+        return JsonResponse({'error': 'Title required'}, status=400)
+    
+    event = Event.objects.create(
+        title=title,
+        notes=data.get('notes', ''),
+        date=data.get('date'),
+        community=community,
+        is_community_event=True,
+    )
+    return JsonResponse({'id': event.id, 'title': event.title})

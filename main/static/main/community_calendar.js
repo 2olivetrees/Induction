@@ -4,6 +4,15 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
 
 let calOffset = 0;
 let allEvents = [];
+let viewMode = "week"; // "week" or "month"
+let currentDate = new Date();
+const communityId = window.COMMUNITY_ID;
+
+function toggleView() {
+  viewMode = viewMode === "week" ? "month" : "week";
+  calOffset = 0; // optional: reset position when switching
+  renderCalendar();
+}
 
 function getWeekStart(off) {
   const d = new Date();
@@ -16,25 +25,29 @@ function dateKey(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-function loadDayPrefs() {
-  try {
-    const saved = localStorage.getItem('cal_days');
-    return saved ? JSON.parse(saved) : [0, 1, 2, 3, 4, 5, 6];
-  } catch(e) { return [0, 1, 2, 3, 4, 5, 6]; }
-}
-
 async function fetchEvents() {
   try {
-    const res = await fetch('/events/');
+    const res = await fetch(`/community/${communityId}/events/`);
     const data = await res.json();
-    allEvents = data.events;
+
+    allEvents = data.events.map(ev => ({
+      id: ev.id,
+      title: ev.title,
+
+      // 👇 convert backend → calendar format
+      start: ev.start || (ev.date + "T09:00"),
+      end: ev.end || (ev.date + "T10:00"),
+
+      allDay: ev.all_day ?? true
+    }));
+    console.log(allEvents);
     renderCalendar();
   } catch(e) {
     console.error('Failed to fetch events', e);
   }
 }
 
-function renderCalendar() {
+function renderWeek() {
   const ws = getWeekStart(calOffset);
   const we = new Date(ws);
   we.setDate(we.getDate() + 6);
@@ -45,17 +58,21 @@ function renderCalendar() {
     we.getDate() + ', ' + we.getFullYear();
 
   const today = dateKey(new Date());
-  const visibleDays = loadDayPrefs();
   const grid = document.getElementById('weekGrid');
   grid.innerHTML = '';
 
   for (let i = 0; i < 7; i++) {
-    if (!visibleDays.includes(i)) continue;
     const d = new Date(ws);
     d.setDate(ws.getDate() + i);
     const key = dateKey(d);
 
     const col = document.createElement('div');
+        for (let h = 0; h < 24; h++) {
+        const hourSlot = document.createElement('div');
+        hourSlot.className = 'time-slot';
+        hourSlot.dataset.hour = h;
+        col.appendChild(hourSlot);
+}
     col.className = 'day-col' + (key === today ? ' today' : '');
     col.innerHTML = `
       <div class="day-name">${DAYS[d.getDay()]}</div>
@@ -66,18 +83,80 @@ function renderCalendar() {
     grid.appendChild(col);
 
     const el = col.querySelector('.events-list');
-      allEvents
-      .filter(ev => {
-        if (!ev.is_community_event) return activeFilters.has('personal');
-        return activeFilters.has(String(ev.community_id));
-      })
+    allEvents
+      .filter(ev => ev.start.startsWith(key))
       .forEach(ev => {
         const pill = document.createElement('div');
-        pill.className = 'event-pill' + (ev.is_community_event ? ' community' : '');
-        pill.textContent = ev.is_community_event ? '★ ' + ev.title : ev.title;
+        pill.className = 'event-pill community';
+        pill.textContent = ev.title;
         pill.onclick = () => openView(ev);
         el.appendChild(pill);
       });
+  }
+}
+
+function renderMonth() {
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML = '';
+
+  const base = new Date();
+  base.setMonth(base.getMonth() + calOffset);
+
+  const year = base.getFullYear();
+  const month = base.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const startDay = firstDay.getDay();
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  document.getElementById('weekLabel').textContent =
+    MONTHS[month] + ' ' + year;
+
+  const today = dateKey(new Date());
+
+  // empty cells before month starts
+  for (let i = 0; i < startDay; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'day-col empty';
+    grid.appendChild(empty);
+  }
+
+  // actual days
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month, day);
+    const key = dateKey(d);
+
+    const col = document.createElement('div');
+    col.className = 'day-col' + (key === today ? ' today' : '');
+
+    col.innerHTML = `
+      <div class="day-num">${day}</div>
+      <div class="events-list" id="el-${key}"></div>
+      <button class="add-btn" onclick="openAdd('${key}')">+</button>
+    `;
+
+    grid.appendChild(col);
+
+    const el = col.querySelector('.events-list');
+
+    allEvents
+      .filter(ev => ev.start.startsWith(key))
+      .forEach(ev => {
+        const pill = document.createElement('div');
+        pill.className = 'event-pill community';
+        pill.textContent = ev.title;
+        pill.onclick = () => openView(ev);
+        el.appendChild(pill);
+      });
+  }
+}
+
+function renderCalendar() {
+  if (viewMode === "week") {
+    renderWeek();
+  } else {
+    renderMonth();
   }
 }
 
@@ -87,7 +166,7 @@ function openAdd(key) {
   modal.className = 'modal-bg';
   modal.innerHTML = `
     <div class="modal">
-      <h3>New event</h3>
+      <h3>New community event</h3>
       <input id="ev-title" placeholder="Event title" />
       <textarea id="ev-body" placeholder="Notes (optional)"></textarea>
       <div class="modal-actions">
@@ -104,7 +183,7 @@ async function saveAdd(key) {
   if (!title) return;
   const notes = document.getElementById('ev-body').value.trim();
 
-  await fetch('/events/create/', {
+  await fetch(`/community/${communityId}/events/create/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
     body: JSON.stringify({ title, notes, date: key })
@@ -121,8 +200,7 @@ function openView(ev) {
   modal.innerHTML = `
     <div class="modal">
       <h3>${ev.title}</h3>
-      ${ev.is_community_event ? `<p style="font-size:12px;color:#185FA5;margin-bottom:8px;">★ ${ev.community_name}</p>` : ''}
-      <div class="event-detail-body">${ev.notes || '<em style="color:#aaa">No notes</em>'}</div>
+      <div class="event-detail-body">${ev.notes || '<em style="color:#9B8FC4">No notes</em>'}</div>
       <div class="modal-actions">
         <button class="btn-danger" onclick="deleteEvent(${ev.id})">Delete</button>
         <button onclick="openEdit(${ev.id}, '${ev.title}', \`${ev.notes}\`)">Edit</button>
@@ -179,8 +257,12 @@ function closeModal() {
   modal.className = '';
 }
 
-function changeWeek(dir) {
-  calOffset = dir === 0 ? 0 : calOffset + dir;
+function changeWeek(direction) {
+  if (viewMode === "week") {
+    calOffset += direction;
+  } else {
+    calOffset += direction; // now represents months instead
+  }
   renderCalendar();
 }
 
@@ -191,19 +273,4 @@ function getCookie(name) {
 }
 
 
-let activeFilters = new Set(['personal', 'all_communities']);
-
-function toggleFilter(btn) {
-  const id = btn.dataset.community;
-  if (activeFilters.has(id)) {
-    activeFilters.delete(id);
-    btn.classList.remove('active');
-  } else {
-    activeFilters.add(id);
-    btn.classList.add('active');
-  }
-  renderCalendar();
-}
-
 fetchEvents();
-

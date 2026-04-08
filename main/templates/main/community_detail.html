@@ -1,6 +1,31 @@
 {% extends 'main/base.html' %}
+{% load static %}
 {% block title %}{{ community.name }}{% endblock %}
+
 {% block content %}
 <h1>{{ community.name }}</h1>
-<a href="{% url 'main:community_settings' community.id %}">Community Settings</a>
+{% if community.description %}
+  <p>{{ community.description }}</p>
+{% endif %}
+
+<h2>Community Calendar</h2>
+<div class="cal-wrap">
+  <div class="cal-header">
+    <span class="cal-title" id="weekLabel"></span>
+    <div class="cal-nav">
+      <button onclick="toggleView()">toggle view</button>
+      <button onclick="changeWeek(-1)">← prev</button>
+      <button onclick="changeWeek(0)">today</button>
+      <button onclick="changeWeek(1)">next →</button>
+        </div>
+    </div>
+  </div>
+  <div class="week-grid" id="weekGrid"></div>
+</div>
+<div id="modal" style="display:none"></div>
+
+<script>
+  window.COMMUNITY_ID = {{ community.id }};
+</script>
+<script src="{% static 'main/community_calendar.js' %}"></script>
 {% endblock %}

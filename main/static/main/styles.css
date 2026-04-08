@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=M+PLUS+Rounded+1c:wght@300;400;500;600;700&display=swap');
 * {
   box-sizing: border-box;
   margin: 0;
@@ -7,7 +6,7 @@
 }
 
 body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   background: #1a1a2e;
   color: #EDE8FF;
   font-size: 16px;
@@ -75,7 +74,7 @@ body {
   cursor: pointer;
   color: #EDE8FF;
   font-size: 14px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
   padding: 0;
 }
 
@@ -91,6 +90,7 @@ main {
 }
 
 h1 {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
   font-size: 28px;
   font-weight: 500;
   color: #EDE8FF;
@@ -99,6 +99,7 @@ h1 {
 }
 
 h2 {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
   font-size: 20px;
   font-weight: 500;
   color: #EDE8FF;
@@ -107,6 +108,7 @@ h2 {
 }
 
 h3 {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
   letter-spacing: -0.02em;
 }
 
@@ -121,7 +123,7 @@ a:hover {
 
 /* ── Buttons ── */
 button {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
   cursor: pointer;
 }
 
@@ -212,8 +214,14 @@ button {
 
 .week-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(7, 1fr);
   gap: 8px;
+}
+
+
+.empty {
+  background: transparent;
+  pointer-events: none;
 }
 
 .day-col {
@@ -330,7 +338,7 @@ button {
   padding: 8px;
   border: 1px solid #2E2B50;
   border-radius: 8px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
   color: #EDE8FF;
   background: #1A1A2E;
 }
@@ -413,7 +421,7 @@ form input[type="email"] {
   border: 1px solid #2E2B50;
   border-radius: 15px;
   font-size: 14px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
   background: #212140;
   color: #EDE8FF;
   margin: 5px auto 2px auto;
@@ -431,8 +439,9 @@ form button[type="submit"] {
   border-radius: 999px;
   padding: 10px 28px;
   font-size: 14px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
   cursor: pointer;
+  margin-top: 12px;
 }
 
 form button[type="submit"]:hover {
@@ -451,3 +460,31 @@ form button[type="submit"]:hover {
   margin-bottom: 24px;    /* Space between each input box */
 }
 
+form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #2E2B50;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  background: #212140;
+  color: #EDE8FF;
+  margin-bottom: 12px;
+  resize: vertical;
+}
+
+form textarea:focus {
+  outline: none;
+  border-color: #C8B8F8;
+}
+
+select {
+  width: 100%;
+  padding: 3px 2px;
+  border: 1px solid #13132A;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  background: #13132A;
+  color: #EDE8FF;
+}

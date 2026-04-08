@@ -10,6 +10,8 @@ urlpatterns = [
     path("community/<int:community_id>/delete/", views.delete_community, name="delete_community"),
     path("community/<int:community_id>/leave/", views.leave_community, name="leave_community"),
     path("community/<int:community_id>/settings/", views.community_settings, name="community_settings"),
+    path("community/<int:community_id>/events/", views.get_community_events, name="get_community_events"),
+    path("community/<int:community_id>/events/create/", views.create_community_event, name="create_community_event"),   
     path("options/", views.options, name="options"),
 
     # Calendar endpoints

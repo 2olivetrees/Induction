@@ -5,9 +5,11 @@ from django.utils import timezone
 
 class Community(models.Model):
     name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
     admin = models.ForeignKey(User, related_name='community_admin', on_delete=models.CASCADE)
     members = models.ManyToManyField(User, related_name='community_members', blank=True)
     invited_users = models.ManyToManyField(User, related_name='pending_invitations', blank=True)
+
     def __str__(self):
         return self.name
 

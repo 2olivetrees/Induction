@@ -1,9 +1,9 @@
 {% extends 'main/base.html' %}
 {% load static %}
-{% block title %}Induction{% endblock %}
+{% block title %}Cosmos{% endblock %}
 
 {% block content %}
-<h1>Welcome, {{ request.user.username }}!</h1>
+<h1>Welcome, {% if request.user.profile.nickname %}{{ request.user.profile.nickname }}{% else %}{{ request.user.username }}{% endif %}!</h1>
 <div class="cal-wrap">
   <div class="cal-header">
     <span class="cal-title" id="weekLabel"></span>

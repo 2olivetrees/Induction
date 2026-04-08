@@ -35,7 +35,7 @@ class UserRegistrationForm(UserCreationForm):
         return user
 
 
-class AuthenticationForm(AuthenticationForm):
+class CustomAuthenticationForm(AuthenticationForm):
     username = forms.CharField(
         label="Email or Username",
         widget=forms.TextInput(attrs={"autofocus": True})
@@ -48,3 +48,40 @@ class AuthenticationForm(AuthenticationForm):
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)
         # Additional checks can be added here if needed
+
+class ProfileForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=30, required=False, label="First Name")
+    last_name = forms.CharField(max_length=30, required=False, label="Last Name")
+    username = forms.CharField(max_length=150, required=True, label="Username")
+    email = forms.EmailField(required=True, label="Email")
+    dob = forms.DateField(
+        required=False,
+        label="Date of Birth",
+        input_formats=['%d/%m/%Y', '%Y-%m-%d'],
+        widget=forms.TextInput(attrs={'placeholder': 'DD/MM/YYYY'})
+    )
+    class Meta:
+        model = Profile
+        fields = ['nickname', 'dob']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['username'].initial = self.instance.user.username
+            self.fields['email'].initial = self.instance.user.email
+            self.fields['first_name'].initial = self.instance.user.first_name
+            self.fields['last_name'].initial = self.instance.user.last_name
+        if self.instance.dob:
+            self.fields['dob'].initial = self.instance.dob.strftime('%d/%m/%Y')
+    def save(self, commit=True):
+        profile = super().save(commit=False)
+        user = profile.user
+        user.first_name = self.cleaned_data.get('first_name', '')
+        user.last_name = self.cleaned_data.get('last_name', '')
+        user.username = self.cleaned_data.get('username', user.username)
+        user.email = self.cleaned_data.get('email', user.email)
+        profile.dob = self.cleaned_data.get('dob', profile.dob)  # save to profile not user
+        if commit:
+            user.save()
+            profile.save()
+        return profile

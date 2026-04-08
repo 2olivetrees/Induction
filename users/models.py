@@ -18,6 +18,7 @@ def ensure_profile(sender, instance: User, created, **kwargs):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     nickname = models.CharField(max_length=30, unique=True)
+    dob = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return self.user.username
