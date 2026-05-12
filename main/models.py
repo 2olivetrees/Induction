@@ -10,6 +10,7 @@ class Community(models.Model):
     admin = models.ForeignKey(User, related_name='community_admin', on_delete=models.CASCADE)
     members = models.ManyToManyField(User, related_name='community_members', blank=True)
     invited_users = models.ManyToManyField(User, related_name='pending_invitations', blank=True)
+    public = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -30,7 +31,7 @@ class Event(models.Model):
     start = models.DateTimeField()
     end = models.DateTimeField(null=True, blank=True)
     all_day = models.BooleanField(default=True)
-
+    public = models.BooleanField(default=False)
     owner = models.ForeignKey(
         User,
         null=True,

@@ -9,10 +9,16 @@ class CommunityCreationForm(forms.ModelForm):
         label="Community Color",
         initial="#7ebbf8"
     )
-
+    public = forms.TypedChoiceField(
+        choices=[(True, 'Public'), (False, 'Private')],
+        coerce=lambda x: x == 'True',
+        widget=forms.RadioSelect,
+        label="Visibility",
+        initial=False
+    )
     class Meta:
         model = Community
-        fields = ['name', 'description', 'color']
+        fields = ['name', 'description', 'color', 'public']
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)

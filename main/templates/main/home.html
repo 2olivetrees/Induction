@@ -64,4 +64,17 @@
     {% empty %}
     <li>You have no pending community invites.</li>
     {% endfor %}
+
+    <h2 align="center">Join a Community</h2>
+<ul>
+    {% for community in public_communities %}
+        {% if community.public %}
+        <li>
+            {{ community.name }} - 
+            <a href="{% url 'main:join_community' community.id %}">Join</a> | 
+        </li>
+        {% endif %}
+    {% empty %}
+    <li>No public communities available to join.</li>
+    {% endfor %}
 {% endblock %}

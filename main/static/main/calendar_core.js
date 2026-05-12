@@ -554,6 +554,10 @@ function openAdd(dateKey, hour=null){
         <input type="checkbox" id="ev-all-day" onchange="toggleAllDay()"> All day
       </label>
 
+      <label>
+        <input type="checkbox" id="ev-public" onchange="togglePublic()"> Public
+      </label>
+
       <div id="time-fields">
 
         <label>Start</label>
@@ -596,6 +600,7 @@ async function saveAdd() {
   const start = document.getElementById('ev-start').value || activeDateKey;
   const end = document.getElementById('ev-end').value || null;
   const all_day = document.getElementById('ev-all-day').checked;
+  const public_event = document.getElementById('ev-public').checked;
 
   const communityId = window.COMMUNITY_ID;
   let url;
@@ -606,7 +611,7 @@ async function saveAdd() {
     payload = { title, notes, start, end, all_day };
   } else {
     url = '/events/create/';
-    payload = { title, notes, start, end, all_day };
+    payload = { title, notes, start, end, all_day, public: public_event };
   }
 
   await fetch(url, {
@@ -651,6 +656,9 @@ function openEdit(ev) {
       <label>
         <input type="checkbox" id="ev-all-day" ${ev.all_day ? "checked" : ""} onchange="toggleAllDay()"> All day
       </label>
+      <label>
+        <input type="checkbox" id="ev-public" ${ev.public ? "checked" : ""}> Public
+      </label>
       <div id="time-fields">
 
         <label>Start</label>
@@ -685,6 +693,7 @@ async function saveEdit(id){
 
   const all_day = document.getElementById('ev-all-day').checked;
   const location = document.getElementById('ev-location').value;
+  const public_event = document.getElementById('ev-public').checked;
 
   const event = allEvents.find(e => e.id === id);
   const communityId = event && event.is_community_event ? event.community_id : null;
@@ -705,7 +714,8 @@ async function saveEdit(id){
       start,
       end,
       all_day,
-      location
+      location,
+      public: public_event
     })
   });
 
@@ -749,7 +759,6 @@ function getCookie(name) {
   if (parts.length === 2) return parts.pop().split(';').shift();
 }
 
-
 let activeFilters = new Set(['personal', 'all_communities']);
 
 function toggleFilter(btn) {
@@ -764,21 +773,10 @@ function toggleFilter(btn) {
   renderCalendar();
 }
 
-// Stub functions for drag and drop (to prevent errors)
-function dragStart(e) {
-  // Placeholder for drag start functionality
-}
-
-function dragEnd(e) {
-  // Placeholder for drag end functionality
-}
-
 function detectColumnDate(x) {
   // Placeholder for column date detection
   return new Date().toISOString().split('T')[0];
 }
-
-
 
 function formatLocalDatetime(dt) {
   const year = dt.getFullYear();

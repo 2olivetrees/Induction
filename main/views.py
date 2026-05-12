@@ -17,9 +17,11 @@ from django.contrib.auth.models import User
 def home(request):
     user_communities = Community.objects.filter(members=request.user)
     invited_communities = Community.objects.filter(invited_users=request.user)
+    public_communities = Community.objects.filter(public=True).exclude(members=request.user).exclude(invited_users=request.user)
     return render(request, "main/home.html", {
         'communities': user_communities,
         'invited_communities': invited_communities,
+        'public_communities': public_communities
     })
 
 
@@ -86,9 +88,14 @@ def invite_users(request, community_id):
 @login_required
 def accept_invitation(request, community_id):
     community = get_object_or_404(Community, id=community_id)
-    if request.user in community.invited_users.all():
+    if request.user in community.members.all():
+        messages.info(request, f'You are already a member of "{community.name}".')
+    elif request.user in community.invited_users.all():
         community.members.add(request.user)
         community.invited_users.remove(request.user)
+        messages.success(request, f'You have joined "{community.name}"!')
+    elif community.public:
+        community.members.add(request.user)
         messages.success(request, f'You have joined "{community.name}"!')
     else:
         messages.error(request, "You don't have an invitation to join this community.")
@@ -155,6 +162,7 @@ def get_events(request):
             'all_day': e.all_day,
             'is_community_event': False,
             'color': e.color,
+            'public': e.public,
         })
 
     for e in community_events:
@@ -169,6 +177,7 @@ def get_events(request):
             'community_name': e.community.name,
             'community_id': e.community.id,
             'color': e.community.color if e.community else e.color,
+            'public': e.public,
         })
 
     return JsonResponse({'events': events})
@@ -196,6 +205,7 @@ def create_event(request):
     all_day = data.get('all_day', False)
     end_str = data.get('end')
     end_datetime = None
+    public = data.get('public', False)
 
     if end_str:
         try:
@@ -217,6 +227,7 @@ def create_event(request):
             community=community,
             is_community_event=True,
             color=community.color,
+            public=public
         )
     else:
         event = Event.objects.create(
@@ -227,6 +238,7 @@ def create_event(request):
             all_day=all_day,
             owner=request.user,
             is_community_event=False,
+            public=public
         )
 
     return JsonResponse({'id': event.id, 'title': event.title})
@@ -267,6 +279,7 @@ def edit_event(request, event_id):
     event.title = title
     event.notes = notes
     event.all_day = all_day
+    event.public = data.get('public')
     event.save()
     
     return JsonResponse({'id': event.id, 'title': event.title})
@@ -287,6 +300,25 @@ def delete_event(request, event_id):
     event.delete()
     return JsonResponse({'success': True})
 
+@login_required
+def join_event(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    if not event.is_community_event:
+        messages.error(request, "You can only join community events.")
+        return redirect('main:home')
+
+    if event.community.members.filter(id=request.user.id).exists():
+        messages.info(request, "You are already a member of this community.")
+        return redirect('main:home')
+    if not event.community.public and request.user not in event.community.invited_users.all():
+        messages.error(request, "You don't have an invitation to join this community.")
+        return redirect('main:home')
+    elif event.community.public:
+        event.community.invited_users.add(request.user)
+        messages.success(request, f'You have been invited to join "{event.community.name}". Please check your invitations.')
+        return redirect('main:home')
+    messages.success(request, f'You have joined the community "{event.community.name}"!')
+    return redirect('main:home')
 
 @login_required
 def get_community_events(request, community_id):
@@ -314,6 +346,7 @@ def get_community_events(request, community_id):
             'community_name': community.name,
             'community_id': community.id,
             'color': community.color,
+            'public': e.public,
         })
     
     return JsonResponse({'events': event_list})
@@ -340,6 +373,7 @@ def create_community_event(request, community_id):
     start_str = data.get('start')
     end_str = data.get('end')
     all_day = data.get("all_day", False)
+    public = data.get('public', False)
     if not start_str:
         return JsonResponse({'error': 'Start time required'}, status=400)
 
@@ -359,6 +393,7 @@ def create_community_event(request, community_id):
         community=community,
         is_community_event=True,
         color=community.color,
+        public=public,
     )
 
     return JsonResponse({
@@ -406,12 +441,9 @@ def edit_community_event(request, community_id, event_id):
     event.title = title
     event.notes = notes
     event.all_day = all_day
+    event.public = data.get('public', event.public)
     event.save()
     
-    return JsonResponse({'id': event.id, 'title': event.title})
-
-    event.save()
-        
     return JsonResponse({'id': event.id, 'title': event.title})
 
 
